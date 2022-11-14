@@ -1,18 +1,22 @@
-name: Docker Image CI
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push]
 
 jobs:
-
-  build:
-
+  build-secure-and-push:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+    - uses: actions/checkout@master
+
+    - run: docker build . -t ${{ secrets.CONTAINER_REGISTRY }}/python3:${{ github.sha }}
+      
+    - uses: Azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.CONTAINER_REGISTRY }}
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+    
+    - run: docker push ${{ secrets.CONTAINER_REGISTRY }}/python3:${{ github.sha }}
+
+    - uses: Azure/container-scan@v0
+      with:
+        image-name: ${{ secrets.CONTAINER_REGISTRY }}/python3:${{ github.sha }}
+    
